@@ -15,6 +15,9 @@ from solders.keypair import Keypair
 # Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GITHUB_REPO_URL = os.getenv("GITHUB_REPO_URL")
+GITHUB_USERNAME = os.getenv("GITHUB_USERNAME")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 # Load mission config
 with open("config/mission.yaml", "r") as f:
@@ -23,87 +26,27 @@ with open("config/mission.yaml", "r") as f:
 # Initialize LLM
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+def main_loop():
+    """Main execution loop for MetOS self-iteration."""
+    while True:
+        print("🔄 Running MetOS main loop...")
+        
+        # Perform reasoning on mission statement
+        improvements = analyze_performance()
+        print(f"💡 Suggested Improvements: {improvements}")
+        
+        # Commit changes based on analysis
+        commit_and_push_changes("Automated self-improvement by MetOS")
+        
+        # Wait for configurable interval before next iteration
+        time.sleep(MISSION_CONFIG.get("self_improvement", {}).get("review_interval", 60))
+
 def save_wallet_info(wallet_type, pubkey):
     """Saves wallet information to /wallets without overwriting existing files."""
     os.makedirs("wallets", exist_ok=True)
     file_path = os.path.join("wallets", f"{wallet_type}_wallets.txt")
     with open(file_path, "a") as f:
         f.write(f"{pubkey}\n")
-
-def generate_btc_wallet():
-    """Generates a new Bitcoin wallet."""
-    wallet = Wallet.create('metos_btc_wallet')
-    pubkey = wallet.address
-    save_wallet_info("btc", pubkey)
-    return pubkey
-
-def generate_eth_wallet():
-    """Generates a new Ethereum wallet."""
-    acct = Account.create()
-    pubkey = acct.address
-    save_wallet_info("eth", pubkey)
-    return pubkey
-
-def generate_solana_wallet():
-    """Generates a new Solana wallet."""
-    keypair = Keypair()
-    pubkey = keypair.pubkey()
-    save_wallet_info("solana", pubkey)
-    return pubkey
-
-def run_file(file_path):
-    """Executes a Python file and returns the output."""
-    if not os.path.exists(file_path):
-        return f"❌ Error: File {file_path} not found."
-    
-    if not file_path.endswith(".py"):
-        return "❌ Error: Only Python files (.py) can be executed."
-    
-    try:
-        result = subprocess.run(["python3", file_path], capture_output=True, text=True, check=True)
-        return f"✅ Output:\n{result.stdout}"
-    except subprocess.CalledProcessError as e:
-        return f"❌ Execution failed:\n{e.stderr}"
-
-def analyze_performance():
-    """Analyzes performance logs and suggests improvements."""
-    with open("logs/self_analysis.log", "r") as log_file:
-        logs = log_file.read()
-    
-    prompt = f"""
-    You are an autonomous AI agent with a mission to self-improve.
-    
-    Mission: {MISSION_CONFIG['mission']['objective']}
-    
-    Logs:
-    {logs}
-    
-    Suggest code updates to improve efficiency and accuracy.
-    """
-    
-    response = client.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response["choices"][0]["message"]["content"]
-
-def update_code(file_path, pattern, replacement):
-    """Replaces a section of a script with new code."""
-    with open(file_path, "r") as f:
-        content = f.read()
-    
-    content = content.replace(pattern, replacement)
-    
-    with open(file_path, "w") as f:
-        f.write(content)
-    
-    print(f"✅ Successfully modified {file_path}")
-
-def restart_metos():
-    """Restarts MetOS after updates."""
-    print("🚀 Restarting MetOS with new modifications...")
-    time.sleep(2)
-    subprocess.run(["systemctl", "restart", "metos"])  # Example using systemd
 
 # API
 app = FastAPI()
@@ -129,7 +72,18 @@ def generate_wallets():
         "solana_wallet": generate_solana_wallet()
     }
 
+@app.post("/commit_changes/")
+def commit_changes(commit_message: str = "Automated update by MetOS"):
+    return {"status": commit_and_push_changes(commit_message)}
+
 if __name__ == "__main__":
     import uvicorn
+    from threading import Thread
+    
+    # Run main loop in a separate thread
+    Thread(target=main_loop, daemon=True).start()
+    
+    # Start API server
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
 
