@@ -2,11 +2,15 @@ import os
 import subprocess
 import yaml
 import time
+import secrets
 from openai import OpenAI
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
 from fastapi import FastAPI
 from dotenv import load_dotenv
+from bitcoinlib.wallets import Wallet
+from eth_account import Account
+from solders.keypair import Keypair
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +22,34 @@ with open("config/mission.yaml", "r") as f:
 
 # Initialize LLM
 client = OpenAI(api_key=OPENAI_API_KEY)
+
+def save_wallet_info(wallet_type, pubkey):
+    """Saves wallet information to /wallets without overwriting existing files."""
+    os.makedirs("wallets", exist_ok=True)
+    file_path = os.path.join("wallets", f"{wallet_type}_wallets.txt")
+    with open(file_path, "a") as f:
+        f.write(f"{pubkey}\n")
+
+def generate_btc_wallet():
+    """Generates a new Bitcoin wallet."""
+    wallet = Wallet.create('metos_btc_wallet')
+    pubkey = wallet.address
+    save_wallet_info("btc", pubkey)
+    return pubkey
+
+def generate_eth_wallet():
+    """Generates a new Ethereum wallet."""
+    acct = Account.create()
+    pubkey = acct.address
+    save_wallet_info("eth", pubkey)
+    return pubkey
+
+def generate_solana_wallet():
+    """Generates a new Solana wallet."""
+    keypair = Keypair()
+    pubkey = keypair.pubkey()
+    save_wallet_info("solana", pubkey)
+    return pubkey
 
 def run_file(file_path):
     """Executes a Python file and returns the output."""
@@ -89,6 +121,15 @@ def update(file_path: str, pattern: str, replacement: str):
     update_code(file_path, pattern, replacement)
     return {"status": "Code updated successfully"}
 
+@app.post("/generate_wallets/")
+def generate_wallets():
+    return {
+        "btc_wallet": generate_btc_wallet(),
+        "eth_wallet": generate_eth_wallet(),
+        "solana_wallet": generate_solana_wallet()
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
