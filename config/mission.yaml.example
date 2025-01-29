@@ -1,0 +1,43 @@
+# MetOS Mission Configuration (remove .example)
+
+mission:
+  name: "MetOS AI Research Agent"
+  objective: "Continuously enhance its own AI capabilities, reasoning, and data retrieval."
+
+# --- Self-Improvement Settings ---
+self_improvement:
+  enabled: true  # Allow MetOS to modify its own code
+  review_interval: 60  # How often (in minutes) MetOS evaluates itself
+  max_code_changes: 3  # Maximum self-modifications per cycle
+  logging_level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR
+  backup_before_modification: true  # Ensure changes can be rolled back
+
+# --- LLM Configuration ---
+llm:
+  provider: "openai"   # Options: openai, grok, llama, anthropic
+  model: "gpt-4-turbo"
+  temperature: 0.5
+  max_tokens: 1024
+  use_browsing: false   # Enable if model supports web browsing
+
+# --- Vector Database Configuration ---
+vector_db:
+  provider: "chromadb"   # Options: chromadb, weaviate, pinecone, faiss
+  path: "./chroma_db"    # Storage path (for local vector DBs)
+
+# --- Web Search Configuration ---
+web_search:
+  provider: "google"     # Options: google, bing, duckduckgo
+  use_fallback: true     # If primary provider fails, use local search
+  max_results: 5
+
+# --- Logging & Debugging ---
+logging:
+  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR
+  log_to_file: true
+  log_file_path: "./logs/metos.log"
+
+# --- Security ---
+security:
+  allow_unauthorized_requests: false
+  enable_rate_limiting: true
