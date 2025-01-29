@@ -24,7 +24,7 @@ MetOS is an AI-driven autonomous system that:
 ## Installation
 ### **1. Clone Repository**
 ```bash
-git clone https://github.com/yourrepo/metos.git
+git clone https://github.com/netzo92/MetOS.git
 cd metos
 ```
 
